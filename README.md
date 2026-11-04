@@ -17,3 +17,15 @@ embargo-frisk-rack@duck.com
 ## Installation 
 
 Download pre-built binaries from the [Releases](https://github.com/chowder/duck-gen/releases) page
+
+## Usage
+If you are logged in, you get four options:
+
+```
+Usage: duck-gen [generate|history|verbose_history|generate_all]
+```
+
+- `generate` makes an alias.
+- `history` shows last generated aliases without timestamp.
+- `verbose_history` shows history with timestamp.
+- `generate_all` makes 30 aliases.

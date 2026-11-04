@@ -62,11 +62,7 @@ func getToken() (string, error) {
 }
 
 func getTokenFile() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(home, ".duck_token"), nil
+	return path.Join(duck.ConfigPath(), ".duck_token"), nil
 }
 
 func readToken() (string, error) {

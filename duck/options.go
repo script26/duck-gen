@@ -9,7 +9,19 @@ import (
 	"strings"
 )
 
-var logFile string = os.Getenv("HOME") + "/aliases_history.txt"
+var logFile string = ConfigPath() + "/aliases_history.txt"
+
+func UserHome() (home string) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return home
+}
+
+func ConfigPath() (configPath string) {
+	return UserHome() + "/.local/share/duck-gen"
+}
 
 func ShowHistory() {
 	file, err := os.Open(logFile)

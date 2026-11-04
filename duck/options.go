@@ -4,176 +4,118 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
-var API_KEY string = "YOUR_API_KEY_HERE"
-var HISTORY_PATH string = os.Getenv("HOME") + "/.local/share/ddg"
-var LOG_FILE string = HISTORY_PATH + "/aliases_history.txt"
-var onlyOneRun bool = true
+var logFile string = os.Getenv("HOME") + "/aliases_history.txt"
 
-	func generate_alias() {
-		client := &http.Client{}
-		var data = strings.NewReader(`{}`)
-		req, err := http.NewRequest("POST",
-			"https://quack.duckduckgo.com/api/email/addresses", data)
-		if err != nil {
-			log.Fatal(err)
-		}
+func ShowHistory() {
+	file, err := os.Open(logFile)
 
-		req.Header.Set("Authorization", "Bearer "+API_KEY)
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", "DuckDuckGo/5")
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer resp.Body.Close()
-		rsp, err := io.ReadAll(resp.Body)
-		RESPONSE := string(rsp)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		ALIAS := RESPONSE[12 : len(RESPONSE)-2]
-
-		if RESPONSE == "{\"error\":\"invalid_token\"}" {
-			ALIAS = ""
-		}
-
-		if ALIAS != "" {
-			FULL_ALIAS := ALIAS + "@duck.com"
-			TIMESTAMP := time.Now().Format("0000-00-00 00:00:00 AM")
-			write := []byte("\n" + TIMESTAMP + " - " + FULL_ALIAS)
-			if onlyOneRun {
-				write = []byte("\n\n" + TIMESTAMP + " - " + FULL_ALIAS)
-			}
-
-			file, err := os.OpenFile(LOG_FILE,
-				os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			defer file.Close()
-			if _, err = file.WriteString(string(write)); err != nil {
-				log.Fatal(err)
-			}
-
-			fmt.Println("Email alias generated: " + FULL_ALIAS)
-			return
-		}
-
-		fmt.Println("Failed to generate alias. Response: " + RESPONSE)
+	if errors.Is(err, os.ErrNotExist) {
+		log.Fatal("No aliases history found.")
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	func show_history() {
-		file, err := os.Open(LOG_FILE)
+	defer file.Close()
 
-		if errors.Is(err, os.ErrNotExist) {
-			log.Fatal("No aliases history found.")
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
 
-		defer file.Close()
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			start := strings.Index(line, " - ") + 3
-			if start == 2 {
-				start = 0
-			}
-
-			removeTime := line[start:]
-			fmt.Println(removeTime)
+		start := strings.Index(line, " - ") + 3
+		if start == 2 {
+			start = 0
 		}
 
-		if err := scanner.Err(); err != nil {
-			fmt.Println(err)
-		}
+		removeTime := line[start:]
+		fmt.Println(removeTime)
 	}
 
-	func show_verbose_history() {
-		data, err := os.ReadFile(LOG_FILE)
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+}
 
-		if errors.Is(err, os.ErrNotExist) {
-			log.Fatal("No aliases history found.")
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
+func ShowVerboseHistory() {
+	data, err := os.ReadFile(logFile)
 
-		fmt.Println(string(data))
+	if errors.Is(err, os.ErrNotExist) {
+		log.Fatal("No aliases history found.")
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	func generate_all_aliases() {
-		write := []byte("\n\nGenerated 30 Aliases")
-		file, err := os.OpenFile(LOG_FILE,
-			os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
+	fmt.Println(string(data))
+}
 
-		defer file.Close()
-		if _, err = file.WriteString(string(write)); err != nil {
-			log.Fatal(err)
-		}
-
-		onlyOneRun = false
-
-		for i := 0; i < 30; i++ {
-			generate_alias()
-		}
+func GenerateAllAddresses(token string) {
+	write := []byte("\nGenerated 30 Aliases\n")
+	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	func show_menu() {
-    log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
-  	var args []string = os.Args
+	defer file.Close()
+	file.WriteString(string(write))
 
-		var choice string = ""
+	for i := 0; i < 30; i++ {
+		address, err := GenerateAddress(token)
+		if err != nil {
+			log.Fatal("Could not generate Private Duck Address: ", err)
+		}
+		fmt.Println(address)
+	}
+
+	file.WriteString("")
+}
+
+func ShowMenu(token string) {
+	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+	var args []string = os.Args
+
+	var choice string = ""
+	if len(args) != 2 {
+		fmt.Println("Please choose an option:")
+		fmt.Println("1 - Generate email alias")
+		fmt.Println("2 - Show aliases history")
+		fmt.Println("3 - Show verbose aliases history")
+		fmt.Println("4 - Generate all aliases")
+		fmt.Print("Enter your choice (1 - 4): ")
+		fmt.Scanln(&choice)
+	} else {
+		choice = args[1]
+	}
+
+	switch choice {
+	case "generate", "1":
+		address, err := GenerateAddress(token)
+		if err != nil {
+			log.Fatal("Could not generate Private Duck Address: ", err)
+		}
+		fmt.Println(address)
+
+	case "history", "2":
+		ShowHistory()
+
+	case "verbose_history", "3":
+		ShowVerboseHistory()
+
+	case "generate_all", "4":
+		GenerateAllAddresses(token)
+
+	default:
 		if len(args) != 2 {
-			fmt.Println("Please choose an option:")
-			fmt.Println("1 - Generate email alias")
-			fmt.Println("2 - Show aliases history")
-			fmt.Println("3 - Show verbose aliases history")
-			fmt.Println("4 - Generate all aliases")
-			fmt.Print("Enter your choice (1 - 4): ")
-			fmt.Scanln(&choice)
+			fmt.Println("Invalid choice. Please run the script " +
+				"again and select a valid option.")
 		} else {
-			choice = args[1]
-		}
-
-		switch choice {
-		case "generate", "1":
-			generate_alias()
-
-		case "history", "2":
-			show_history()
-
-		case "verbose_history", "3":
-			show_verbose_history()
-
-		case "generate_all", "4":
-			generate_all_aliases()
-
-		default:
-			if len(args) != 2 {
-				fmt.Println("Invalid choice. Please run the script " +
-					"again and select a valid option.")
-			} else {
-				fmt.Println("Usage: " + args[0] + " [generate|history|" +
-					"verbose_history|generate_all]")
-			}
+			fmt.Println("Usage: " + args[0] + " [generate|history|" +
+				"verbose_history|generate_all]")
 		}
 	}
-
+}

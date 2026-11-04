@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/chowder/duck-gen/duck"
+	"github.com/script26/duck-gen/duck"
 )
 
 func main() {
@@ -20,13 +20,7 @@ func main() {
 		}
 	}
 
-	address, err := duck.GenerateAddress(token)
-	if err != nil {
-		fmt.Println("Could not generate Private Duck Address: ", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(address)
+	duck.ShowMenu(token)
 
 	err = saveToken(token)
 	if err != nil {

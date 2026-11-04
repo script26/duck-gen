@@ -1,4 +1,4 @@
-module github.com/chowder/duck-gen
+module github.com/script26/duck-gen
 
 go 1.23.2
 
